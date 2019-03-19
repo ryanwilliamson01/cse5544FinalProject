@@ -1,3 +1,13 @@
 <div id="map">
-  
+
 </div>
+<mat-card class="controls">
+  <mat-card-title>Controls</mat-card-title>
+  <mat-card-content>
+    <h4>Time</h4>
+    <mat-slider thumbLabel tickInterval="1" min="0" max="24" (change)="filterHeatmap()" [(ngModel)]="time"></mat-slider>
+  </mat-card-content>
+  <mat-card-actions>
+    <button mat-button>Close</button>
+  </mat-card-actions>
+</mat-card>
