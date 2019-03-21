@@ -51,7 +51,7 @@ export class AppComponent {
       maxZoom: 19
     });
 
-    CartoDB_DarkMatter.addTo(this.map);
+    CartoDB_Voyager.addTo(this.map);
 
     this.originDraw = new L.FreeHandShapes({
       className: 'leaflet-free-hand-shapes',
