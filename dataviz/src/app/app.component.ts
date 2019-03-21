@@ -6,9 +6,16 @@ import 'hammerjs';
 import { TransityService } from './transity.service';
 import 'leaflet-freehandshapes';
 import 'leaflet.polyline.snakeanim';
+import 'colormap';
+import 'color-interpolate';
+import 'd3-interpolate';
+import * as d3 from 'd3';
+import { generate } from 'rxjs';
 
 declare let L;
 
+const HEATMAP_START_COLOR = "#ccffff";
+const HEATMAP_END_COLOR = "#ff0000"
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -20,20 +27,27 @@ export class AppComponent {
 
   time = 0;
   heatmap;
+  hexmap;
   map;
+  max;
   originDraw;
   destinationDraw;
 
   features = [];
   polylines = [];
   tickSize = 1;
+  loading = false;
+
+
 
   constructor(private dataService: DataService, private transity: TransityService) {
 
   }
 
   ngOnInit() {
-    this.map = L.map('map').setView([40.0142, -83.0309], 15);
+    this.loading = true;
+    this.map = L.map('map').setView([40.0142, -83.0309], 11);
+    this.max = 0;
 
     let CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -106,11 +120,65 @@ export class AppComponent {
     // });
 
     this.transity.getAllPoints().subscribe(res => {
-      console.log(res);
+      console.log("recieved");
 
       this.features = res;
       this.heatmap = this.journeysToHeatmap(res, {});
+      this.hexmap = this.journeysToHexmap(res, {});
+      this.hexmap.addTo(this.map);
+      this.loading = false;
+      console.log(this.hexmap);
     })
+
+  }
+
+  generateHexGrid(journeys: any[]) {
+    let bbox = [-83.2, 39.822358, -82.809992, 40.153282];
+    let cellsize = 0.75;
+    let options = {
+      unit: 'miles'
+    };
+    let hexgrid = turf.hexGrid(bbox, cellsize, options);
+
+    // console.log(hexgrid);
+    // let max = 0;
+    // let reduced = points.splice(0, 25000);
+
+    journeys.forEach(journey => {
+      hexgrid.features.forEach(hex => {
+        if (!hex.properties.numPoints) {
+          hex.properties = {
+            numPoints: 0,
+            journeys: []
+          }
+        }
+        if (turf.booleanContains(hex, turf.point([journey.path[0].lon, journey.path[0].lat]))) {
+          hex.properties.numPoints += 1;
+          hex.properties.journeys.push(journey);
+          this.max = hex.properties.numPoints > this.max ? hex.properties.numPoints : this.max;
+          return;
+        }
+      });
+    });
+    let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    return L.geoJson(hexgrid, {
+      style: function (feature) {
+        // feature.properties.numPoints = Math.random();
+        return {
+          "color": colormap(feature.properties.numPoints / (0.3 * this.max)),
+          "weight": 1,
+          "fillOpacity": 0.5,
+          "opacity": 0.5
+        };
+      }
+    });
+  }
+  journeysToHexmap(journeys: any[], options) {
+    let coords = [];
+    // journeys.forEach(journey => {
+    //   coords.push();
+    // })
+    return this.generateHexGrid(journeys);
   }
   journeysToHeatmap(journeys: any[], options) {
     let coords = [];
@@ -118,14 +186,33 @@ export class AppComponent {
     data.forEach(journey => {
       journey._latlngs.forEach((point) => coords.push(point));
     })
-    return L.heatLayer(coords, options).addTo(this.map);
+    return L.heatLayer(coords, options);
   }
   filterHeatmap() {
     let filteredJourneys = this.features.filter(j => {
       return this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize;
     })
-    this.map.removeLayer(this.heatmap);
-    this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
+    this.map.removeLayer(this.hexmap);
+    //Update all of the values and calculate the new max
+    // let max = 0
+    Object.keys(this.hexmap._layers).forEach(key => {
+      let hex = this.hexmap._layers[key]
+      let newCount = 0;
+      hex.feature.properties.journeys.forEach(j => {
+        if (this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize) {
+          newCount += 1;
+        }
+      });
+      hex.feature.properties.filteredCount = newCount;
+    })
+    let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    Object.keys(this.hexmap._layers).forEach(key => {
+      let hex = this.hexmap._layers[key]
+      hex.options.color = colormap(hex.feature.properties.filteredCount / (0.3 * this.max))
+    });
+    this.map.addLayer(this.hexmap);
+    // this.map.removeLayer(this.heatmap);
+    // this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
   }
   resetHeatmap() {
     let points = this.features.map(f => {
