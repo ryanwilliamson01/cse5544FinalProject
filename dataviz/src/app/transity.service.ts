@@ -13,7 +13,7 @@ export class TransityService {
   private journeysURL = 'https://transity.herokuapp.com/cuebiq/journeys';
   constructor(private http: HttpClient) { }
 
-  getPolygonJourneys(originPoints: any[], destinationPoints: any[]) {
+  getPolygonJourneys(originPoints: any[], destinationPoints: any[], time?) {
     const options = {
       params: new HttpParams().set('geoscoped', 'true'),
       header: new HttpHeaders({ 'Content-Type:': 'application/json' })
@@ -26,7 +26,15 @@ export class TransityService {
       destinations: destinations
     }, options).pipe(map(res => {
       if (isArray(res)) {
-        return res.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }))
+        let journeys = res;
+        console.log(journeys);
+        if (time) {
+          journeys = journeys.filter(j => {
+            return time <= j.start / 60 && j.start / 60 <= time + 1;
+          })
+        }
+        console.log(journeys.length);
+        return journeys.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }))
       }
       return [];
     }));
@@ -43,10 +51,7 @@ export class TransityService {
       origins: origins,
       destinations: destinations
     }, options).pipe(map(res => {
-      if (isArray(res)) {
-        return res.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }))
-      }
-      return [];
+      return res;
     }));
   }
 

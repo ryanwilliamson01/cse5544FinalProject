@@ -5,6 +5,7 @@ import * as turf from '@turf/turf'
 import 'hammerjs';
 import { TransityService } from './transity.service';
 import 'leaflet-freehandshapes';
+import 'leaflet.polyline.snakeanim';
 
 declare let L;
 
@@ -25,13 +26,15 @@ export class AppComponent {
 
   features = [];
   polylines = [];
+  tickSize = 1;
 
   constructor(private dataService: DataService, private transity: TransityService) {
 
   }
 
   ngOnInit() {
-    this.map = L.map('map').setView([40.0142, -83.0309], 13);
+    this.map = L.map('map').setView([40.0142, -83.0309], 15);
+
     let CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
@@ -48,7 +51,7 @@ export class AppComponent {
       maxZoom: 19
     });
 
-    CartoDB_Voyager.addTo(this.map);
+    CartoDB_DarkMatter.addTo(this.map);
 
     this.originDraw = new L.FreeHandShapes({
       className: 'leaflet-free-hand-shapes',
@@ -102,25 +105,27 @@ export class AppComponent {
     //   this.heatmap = L.heatLayer(coords).addTo(this.map);
     // });
 
-    this.transity.getAllPoints().subscribe(data => {
-      
-      let coords = [];
-      data.forEach(journey => {
-        journey._latlngs.forEach((point) => coords.push(point));
-      })
-      this.heatmap = L.heatLayer(coords).addTo(this.map);
+    this.transity.getAllPoints().subscribe(res => {
+      console.log(res);
+
+      this.features = res;
+      this.heatmap = this.journeysToHeatmap(res, {});
     })
   }
-
+  journeysToHeatmap(journeys: any[], options) {
+    let coords = [];
+    let data = journeys.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }))
+    data.forEach(journey => {
+      journey._latlngs.forEach((point) => coords.push(point));
+    })
+    return L.heatLayer(coords, options).addTo(this.map);
+  }
   filterHeatmap() {
-    let points = this.features.filter(f => {
-      let date = new Date(f.properties.time);
-      return date.getHours() == this.time;
-    }).map(f => {
-      return new L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0])
-    });
+    let filteredJourneys = this.features.filter(j => {
+      return this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize;
+    })
     this.map.removeLayer(this.heatmap);
-    this.heatmap = L.heatLayer(points, { radius: 25, maxZoom: 15 }).addTo(this.map);
+    this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
   }
   resetHeatmap() {
     let points = this.features.map(f => {
@@ -133,14 +138,37 @@ export class AppComponent {
     this.originDraw.setMode('add');
     this.polylines.forEach(line => this.map.removeLayer(line));
   }
-  editDrawing(){
+  editDrawing() {
     this.originDraw.setMode('delete');
+  }
+  hideHeatmap() {
+    this.map.removeLayer(this.heatmap);
+  }
+  showHeatmap() {
+    this.map.addLayer(this.heatmap);
+  }
+  showAllJourneys() {
+    let journeys = this.features.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.1 }))
+    this.polylines = journeys;
+    journeys.forEach(j => j.addTo(this.map).snakeIn())
+  }
+  removeAllJourneys() {
+    this.polylines.forEach(p => this.map.removeLayer(p));
   }
   stopDrawing() {
     this.originDraw.setMode('view');
-    this.transity.getPolygonJourneys(this.originDraw, this.destinationDraw).subscribe(res => {
+    this.polylines.forEach(line => this.map.removeLayer(line));
+    this.transity.getPolygonJourneys(this.originDraw, this.destinationDraw, this.time).subscribe(res => {
       this.polylines = res;
-      this.polylines.forEach(line => line.addTo(this.map));
+      this.polylines.forEach(line => {
+        try {
+          line.addTo(this.map).snakeIn();
+        } catch (e) {
+          //do nothing
+        }
+        // L.circleMarker(line._latlngs[line._latlngs.length - 1], { color: 'green' }).addTo(this.map);
+      });
     })
+
   }
 }

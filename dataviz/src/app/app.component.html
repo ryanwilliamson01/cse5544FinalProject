@@ -5,7 +5,15 @@
   <mat-card-title>Controls</mat-card-title>
   <mat-card-content>
     <h4>Time</h4>
-    <mat-slider thumbLabel tickInterval="1" min="0" max="24" (change)="filterHeatmap()" [(ngModel)]="time"></mat-slider>
+    <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHeatmap()" [(ngModel)]="time">
+    </mat-slider>
+    <!-- <mat-form-field class="example-full-width" [(ngModel)]="tickSize">
+      <input matInput placeholder="Tick Interval" value="1">
+    </mat-form-field> -->
+    <button mat-button color="primary" (click)="showAllJourneys()">Show All Journeys</button>
+    <button mat-button color="primary" (click)="removeAllJourneys()">Remove All Journeys</button>
+    <button mat-button color="primary" (click)="showHeatmap()">Show Heatmap</button>
+    <button mat-button color="primary" (click)="hideHeatmap()">Hide Heatmap</button>
     <button mat-button color="primary" (click)="resetHeatmap()">Reset Heatmap</button>
     <button mat-button color="primary" (click)="startDrawing()">Start Drawing</button>
     <button mat-button color="primary" (click)="editDrawing()">Edit Drawing</button>
