@@ -10,6 +10,8 @@
     <h4>Time</h4>
     <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHeatmap()" [(ngModel)]="time">
     </mat-slider>
+    <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHexmap()" [(ngModel)]="timeHex">
+    </mat-slider>
     <!-- <mat-form-field class="example-full-width" [(ngModel)]="tickSize">
       <input matInput placeholder="Tick Interval" value="1">
     </mat-form-field> -->

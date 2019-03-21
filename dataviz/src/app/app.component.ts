@@ -26,6 +26,7 @@ const HEATMAP_END_COLOR = "#ff0000"
 export class AppComponent {
 
   time = 0;
+  timeHex = 0;
   heatmap;
   hexmap;
   map;
@@ -161,11 +162,12 @@ export class AppComponent {
       });
     });
     let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    let maxAdj = 0.3 * this.max
+    //TODO FIX THIS 
     return L.geoJson(hexgrid, {
       style: function (feature) {
-        // feature.properties.numPoints = Math.random();
         return {
-          "color": colormap(feature.properties.numPoints / (0.3 * this.max)),
+          "color": colormap(feature.properties.numPoints / (200)),
           "weight": 1,
           "fillOpacity": 0.5,
           "opacity": 0.5
@@ -192,6 +194,10 @@ export class AppComponent {
     let filteredJourneys = this.features.filter(j => {
       return this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize;
     })
+    this.map.removeLayer(this.heatmap);
+    this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
+  }
+  filterHexmap() {
     this.map.removeLayer(this.hexmap);
     //Update all of the values and calculate the new max
     // let max = 0
@@ -199,7 +205,7 @@ export class AppComponent {
       let hex = this.hexmap._layers[key]
       let newCount = 0;
       hex.feature.properties.journeys.forEach(j => {
-        if (this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize) {
+        if (this.timeHex <= j.start / 60 && j.start / 60 <= this.timeHex + this.tickSize) {
           newCount += 1;
         }
       });
@@ -208,11 +214,9 @@ export class AppComponent {
     let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
     Object.keys(this.hexmap._layers).forEach(key => {
       let hex = this.hexmap._layers[key]
-      hex.options.color = colormap(hex.feature.properties.filteredCount / (0.3 * this.max))
+      hex.options.color = colormap(hex.feature.properties.filteredCount / (45))
     });
     this.map.addLayer(this.hexmap);
-    // this.map.removeLayer(this.heatmap);
-    // this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
   }
   resetHeatmap() {
     let points = this.features.map(f => {
