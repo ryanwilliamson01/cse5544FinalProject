@@ -132,6 +132,9 @@ export class AppComponent {
     })
 
   }
+  hideHexmap(){
+    this.map.removeLayer(this.hexmap);
+  }
 
   generateHexGrid(journeys: any[]) {
     let bbox = [-83.2, 39.822358, -82.809992, 40.153282];
