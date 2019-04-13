@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { DataService } from './data.service';
 import 'leaflet.heat';
-import * as turf from '@turf/turf'
+import * as turf from '@turf/turf';
 import 'hammerjs';
 import { TransityService } from './transity.service';
 import 'leaflet-freehandshapes';
@@ -11,11 +11,12 @@ import 'color-interpolate';
 import 'd3-interpolate';
 import * as d3 from 'd3';
 import { generate } from 'rxjs';
+import 'leaflet-dvf';
 
 declare let L;
 
-const HEATMAP_START_COLOR = "#ccffff";
-const HEATMAP_END_COLOR = "#ff0000"
+const HEATMAP_START_COLOR = '#ccffff';
+const HEATMAP_END_COLOR = '#ff0000'
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -23,7 +24,7 @@ const HEATMAP_END_COLOR = "#ff0000"
 })
 
 
-export class AppComponent {
+export class AppComponent implements OnInit {
 
   time = 0;
   timeHex = 0;
@@ -46,21 +47,21 @@ export class AppComponent {
   }
 
   ngOnInit() {
-    this.loading = true;
+
     this.map = L.map('map').setView([40.0142, -83.0309], 11);
     this.max = 0;
 
-    let CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    const CartoDB_Positron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19
     });
-    let CartoDB_DarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    const CartoDB_DarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19
     });
-    let CartoDB_Voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    const CartoDB_Voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19
@@ -105,6 +106,7 @@ export class AppComponent {
     this.map.addLayer(this.originDraw);
     this.map.addLayer(this.destinationDraw);
 
+
     // this.dataService.getTwitter().subscribe(data => {
     //   // L.geoJson(data).addTo(map);
 
@@ -120,8 +122,9 @@ export class AppComponent {
     //   this.heatmap = L.heatLayer(coords).addTo(this.map);
     // });
 
+    this.loading = true;
     this.transity.getAllPoints().subscribe(res => {
-      console.log("recieved");
+      console.log('recieved');
 
       this.features = res;
       this.heatmap = this.journeysToHeatmap(res, {});
@@ -129,20 +132,17 @@ export class AppComponent {
       this.hexmap.addTo(this.map);
       this.loading = false;
       console.log(this.hexmap);
-    })
+    });
 
   }
-  hideHexmap(){
+  hideHexmap() {
     this.map.removeLayer(this.hexmap);
   }
 
   generateHexGrid(journeys: any[]) {
-    let bbox = [-83.2, 39.822358, -82.809992, 40.153282];
-    let cellsize = 0.75;
-    let options = {
-      unit: 'miles'
-    };
-    let hexgrid = turf.hexGrid(bbox, cellsize, options);
+    const bbox = turf.bbox(turf.bboxPolygon([-83.2, 39.822358, -82.809992, 40.153282]));
+    const cellsize = 1.2;
+    const hexgrid = turf.hexGrid(bbox, cellsize);
 
     // console.log(hexgrid);
     // let max = 0;
@@ -154,7 +154,7 @@ export class AppComponent {
           hex.properties = {
             numPoints: 0,
             journeys: []
-          }
+          };
         }
         if (turf.booleanContains(hex, turf.point([journey.path[0].lon, journey.path[0].lat]))) {
           hex.properties.numPoints += 1;
@@ -164,48 +164,74 @@ export class AppComponent {
         }
       });
     });
-    let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
-    let maxAdj = 0.3 * this.max
-    //TODO FIX THIS 
+    const colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    const maxAdj = 0.3 * this.max;
+
+
+    console.log(hexgrid);
     return L.geoJson(hexgrid, {
       style: function (feature) {
         return {
-          "color": colormap(feature.properties.numPoints / (200)),
-          "weight": 1,
-          "fillOpacity": 0.5,
-          "opacity": 0.5
+          'color': colormap(feature.properties.numPoints / (200)),
+          'weight': 1,
+          'fillOpacity': 0.5,
+          'opacity': 0.5
         };
+      },
+      onEachFeature: (feature, layer) => {
+        const centroid = turf.centroid(feature);
+        const latlng = new L.LatLng(centroid.geometry.coordinates[1], centroid.geometry.coordinates[0])
+        const hex = this.generateHexChart(feature.properties.journeys, 20, latlng);
+        // console.log(hex);
+        this.map.addLayer(hex);
+        layer.on({
+          click: (e) => {
+
+            this.polylines.forEach(p => this.map.removeLayer(p));
+            this.polylines = [];
+            e.sourceTarget.feature.properties.journeys.forEach(j => {
+              const p = L.polyline(j.path, { color: 'green', weight: 0.33 });
+              this.polylines.push(p);
+              try {
+                p.addTo(this.map).snakeIn();
+              } catch (e) {
+
+              }
+            });
+            // console.log("e", );
+          }
+        })
       }
     });
   }
   journeysToHexmap(journeys: any[], options) {
-    let coords = [];
+    const coords = [];
     // journeys.forEach(journey => {
     //   coords.push();
     // })
     return this.generateHexGrid(journeys);
   }
   journeysToHeatmap(journeys: any[], options) {
-    let coords = [];
-    let data = journeys.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }))
+    const coords = [];
+    const data = journeys.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.33 }));
     data.forEach(journey => {
       journey._latlngs.forEach((point) => coords.push(point));
-    })
+    });
     return L.heatLayer(coords, options);
   }
   filterHeatmap() {
-    let filteredJourneys = this.features.filter(j => {
+    const filteredJourneys = this.features.filter(j => {
       return this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize;
-    })
+    });
     this.map.removeLayer(this.heatmap);
     this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
   }
   filterHexmap() {
     this.map.removeLayer(this.hexmap);
-    //Update all of the values and calculate the new max
+    // Update all of the values and calculate the new max
     // let max = 0
     Object.keys(this.hexmap._layers).forEach(key => {
-      let hex = this.hexmap._layers[key]
+      const hex = this.hexmap._layers[key];
       let newCount = 0;
       hex.feature.properties.journeys.forEach(j => {
         if (this.timeHex <= j.start / 60 && j.start / 60 <= this.timeHex + this.tickSize) {
@@ -213,17 +239,17 @@ export class AppComponent {
         }
       });
       hex.feature.properties.filteredCount = newCount;
-    })
-    let colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    });
+    const colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
     Object.keys(this.hexmap._layers).forEach(key => {
-      let hex = this.hexmap._layers[key]
-      hex.options.color = colormap(hex.feature.properties.filteredCount / (45))
+      const hex = this.hexmap._layers[key];
+      hex.options.color = colormap(hex.feature.properties.filteredCount / (45));
     });
     this.map.addLayer(this.hexmap);
   }
   resetHeatmap() {
-    let points = this.features.map(f => {
-      return new L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0])
+    const points = this.features.map(f => {
+      return new L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]);
     });
     this.map.removeLayer(this.heatmap);
     this.heatmap = L.heatLayer(points).addTo(this.map);
@@ -242,9 +268,9 @@ export class AppComponent {
     this.map.addLayer(this.heatmap);
   }
   showAllJourneys() {
-    let journeys = this.features.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.1 }))
+    const journeys = this.features.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.1 }));
     this.polylines = journeys;
-    journeys.forEach(j => j.addTo(this.map).snakeIn())
+    journeys.forEach(j => j.addTo(this.map).snakeIn());
   }
   removeAllJourneys() {
     this.polylines.forEach(p => this.map.removeLayer(p));
@@ -258,11 +284,107 @@ export class AppComponent {
         try {
           line.addTo(this.map).snakeIn();
         } catch (e) {
-          //do nothing
+          // do nothing
         }
         // L.circleMarker(line._latlngs[line._latlngs.length - 1], { color: 'green' }).addTo(this.map);
       });
-    })
+    });
+
+  }
+  maxNum(num1, num2) {
+    return num1 > num2 ? num1 : num2;
+  }
+  minNum(num1, num2) {
+    return num1 < num2 ? num1 : num2;
+  }
+  generateHexChart(journeys, radius, latlng) {
+
+    const data = {
+      'Walking': 0,
+      'Biking': 0,
+      'Driving Slowly': 0,
+      'Driving Fast': 0,
+    };
+    const chartOptions = {
+      'Walking': {},
+      'Biking': {},
+      'Driving Slowly': {},
+      'Driving Fast': {}
+    };
+    // const colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+
+    journeys.forEach(j => {
+      if (j.speed < 6) {
+        data['Walking']++;
+      } else if (j.speed < 12) {
+        data['Biking']++;
+      } else if (j.speed < 35) {
+        data['Driving Slowly']++;
+      } else {
+        data['Driving Fast']++;
+      }
+    });
+    data['Walking'] = data['Walking'] / journeys.length;
+    data['Biking'] = data['Biking'] / journeys.length;
+    data['Driving Slowly'] = data['Driving Slowly'] / journeys.length;
+    data['Driving Fast'] = data['Driving Fast'] / journeys.length;
+
+    // const max = this.maxNum(this.maxNum(this.maxNum(data['walking'], data['Biking']), data['Driving Slowly']), data['Driving Fast']);
+    // const min = this.minNum(this.minNum(this.minNum(data['walking'], data['Biking']), data['Driving Slowly']), data['Driving Fast']);
+    // const max = 20;
+    const max = 1;
+    const min = 0;
+    const maxRadius = radius;
+    chartOptions['Walking'] = {
+      fillColor: '#66c2a5',
+      minValue: min,
+      maxValue: max,
+      maxRadius: maxRadius,
+      displayText: function (value) {
+        return value.toFixed(2);
+      }
+    };
+    chartOptions['Biking'] = {
+      fillColor: '#fc8d62',
+      minValue: min,
+      maxValue: max,
+      maxRadius: maxRadius,
+      displayText: function (value) {
+        return value.toFixed(2);
+      }
+    };
+    chartOptions['Driving Slowly'] = {
+      fillColor: '#8da0cb',
+      minValue: min,
+      maxValue: max,
+      maxRadius: maxRadius,
+      displayText: function (value) {
+        return value.toFixed(2);
+      }
+    };
+    chartOptions['Driving Fast'] = {
+      fillColor: '#e78ac3',
+      minValue: min,
+      maxValue: max,
+      maxRadius: maxRadius,
+      displayText: function (value) {
+        return value.toFixed(2);
+      }
+    };
+
+
+    const options = {
+      data: data,
+      chartOptions: chartOptions,
+      numberOfSides: 6,
+      weight: 1,
+      radius: radius,
+      color: '#000000',
+      fillOpacity: 1,
+    };
+    return new L.StackedRegularPolygonMarker(latlng, options);
 
   }
 }
+
+
