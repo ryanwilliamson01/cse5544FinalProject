@@ -129,12 +129,6 @@ export class AppComponent implements OnInit {
 
     this.loading = true;
     this.transity.getAllPoints().subscribe(res => {
-      // console.log(res);
-      // res.forEach(j => j.path.forEach(p => {
-      //   const marker = new L.circleMarker(new L.LatLng(p.lat, p.lon), { radius: 2 });
-      //   this.map.addLayer(marker);
-      //   this.allPoints.push(marker);
-      // }));
       this.features = res;
       this.heatmap = this.journeysToHeatmap(res,{});
       this.hexmap = this.journeysToHexmap(res, {});
