@@ -39,7 +39,7 @@ export class AppComponent implements OnInit {
   polylines = [];
   allPoints = [];
   tickSize = 1;
-  stepSize = .25;
+  stepSize = .1;
   hexGrid;
   hexPolygons = [];
   loading = false;
