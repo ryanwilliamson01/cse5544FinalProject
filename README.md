@@ -10,4 +10,9 @@
 7. Assuming succesful installation, type "ng serve" to start the application
 8. Open localhost:4200 in Chrome (Or Safari) and enjoy the app
 
-## R
+## Report 
+[Report](https://docs.google.com/document/d/1oFAP8QgUjdHaTO7OTD-d7dRtQhzZl7yKZIB5fbxNp9c/edit?usp=sharing)
+
+## Demo
+
+[Demo](https://drive.google.com/file/d/1kwzHCmQeu9m6W3am8wsMDn4Fy3JxbDs0/view?usp=sharing)

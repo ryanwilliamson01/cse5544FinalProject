@@ -8,8 +8,10 @@
   <mat-card-title>Controls</mat-card-title>
   <mat-card-content>
     <h4>Time</h4>
+    <h4>Heatmap</h4>
     <mat-slider thumbLabel [tickInterval]="tickSize" [step]="stepSize" min="0" max="23" (change)="filterHeatmap()" [(ngModel)]="time">
     </mat-slider>
+    <h4>Hexmap</h4>
     <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHexmap()" [(ngModel)]="timeHex">
     </mat-slider>
     <!-- <mat-form-field class="example-full-width" [(ngModel)]="tickSize">
