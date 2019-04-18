@@ -38,7 +38,11 @@ export class AppComponent implements OnInit {
   features = [];
   polylines = [];
   tickSize = 1;
+  stepSize = .25;
+  hexGrid;
+  hexPolygons = [];
   loading = false;
+  hoverEnabled = false;
 
 
 
@@ -141,7 +145,7 @@ export class AppComponent implements OnInit {
 
   generateHexGrid(journeys: any[]) {
     const bbox = turf.bbox(turf.bboxPolygon([-83.2, 39.822358, -82.809992, 40.153282]));
-    const cellsize = 1.2;
+    const cellsize = 2.3;
     const hexgrid = turf.hexGrid(bbox, cellsize);
 
     // console.log(hexgrid);
@@ -169,6 +173,7 @@ export class AppComponent implements OnInit {
 
 
     console.log(hexgrid);
+    this.hexGrid = hexgrid;
     return L.geoJson(hexgrid, {
       style: function (feature) {
         return {
@@ -183,24 +188,34 @@ export class AppComponent implements OnInit {
         const latlng = new L.LatLng(centroid.geometry.coordinates[1], centroid.geometry.coordinates[0])
         const hex = this.generateHexChart(feature.properties.journeys, 20, latlng);
         // console.log(hex);
-        this.map.addLayer(hex);
-        layer.on({
-          click: (e) => {
+        this.hexPolygons.push(hex);
+        layer.on('mouseover', (e) => {
+          if (this.hoverEnabled) {
+            this.map.addLayer(hex);
+          }
 
-            this.polylines.forEach(p => this.map.removeLayer(p));
-            this.polylines = [];
-            e.sourceTarget.feature.properties.journeys.forEach(j => {
-              const p = L.polyline(j.path, { color: 'green', weight: 0.33 });
-              this.polylines.push(p);
-              try {
-                p.addTo(this.map).snakeIn();
-              } catch (e) {
-
-              }
-            });
-            // console.log("e", );
+        });
+        layer.on('mouseout', (e) => {
+          if (this.hoverEnabled) {
+            this.map.removeLayer(hex);
           }
         })
+        layer.on('click', (e) => {
+
+          this.polylines.forEach(p => this.map.removeLayer(p));
+          this.polylines = [];
+          e.sourceTarget.feature.properties.journeys.forEach(j => {
+            const p = L.polyline(j.path, { color: 'green', weight: 0.33 });
+            this.polylines.push(p);
+            try {
+              p.addTo(this.map).snakeIn();
+            } catch (e) {
+
+            }
+          });
+          // console.log("e", );
+
+        });
       }
     });
   }
@@ -254,6 +269,12 @@ export class AppComponent implements OnInit {
     this.map.removeLayer(this.heatmap);
     this.heatmap = L.heatLayer(points).addTo(this.map);
   }
+  showAllHexPolygons() {
+    this.hexPolygons.forEach((hex) => this.map.addLayer(hex));
+  }
+  hideAllHexPolygons() {
+    this.hexPolygons.forEach((hex) => this.map.removeLayer(hex));
+  }
   startDrawing() {
     this.originDraw.setMode('add');
     this.polylines.forEach(line => this.map.removeLayer(line));
@@ -266,6 +287,9 @@ export class AppComponent implements OnInit {
   }
   showHeatmap() {
     this.map.addLayer(this.heatmap);
+  }
+  showHexmap() {
+    this.map.addLayer(this.hexmap);
   }
   showAllJourneys() {
     const journeys = this.features.map(journey => L.polyline(journey.path, { color: 'red', weight: 0.1 }));
@@ -339,6 +363,9 @@ export class AppComponent implements OnInit {
       fillColor: '#66c2a5',
       minValue: min,
       maxValue: max,
+      displayOptions: {
+        excludeFromTooltip: true
+      },
       maxRadius: maxRadius,
       displayText: function (value) {
         return value.toFixed(2);
@@ -348,6 +375,9 @@ export class AppComponent implements OnInit {
       fillColor: '#fc8d62',
       minValue: min,
       maxValue: max,
+      displayOptions: {
+        excludeFromTooltip: true
+      },
       maxRadius: maxRadius,
       displayText: function (value) {
         return value.toFixed(2);
@@ -357,6 +387,9 @@ export class AppComponent implements OnInit {
       fillColor: '#8da0cb',
       minValue: min,
       maxValue: max,
+      displayOptions: {
+        excludeFromTooltip: true
+      },
       maxRadius: maxRadius,
       displayText: function (value) {
         return value.toFixed(2);
@@ -365,6 +398,9 @@ export class AppComponent implements OnInit {
     chartOptions['Driving Fast'] = {
       fillColor: '#e78ac3',
       minValue: min,
+      displayOptions: {
+        excludeFromTooltip: true
+      },
       maxValue: max,
       maxRadius: maxRadius,
       displayText: function (value) {
@@ -380,7 +416,14 @@ export class AppComponent implements OnInit {
       weight: 1,
       radius: radius,
       color: '#000000',
-      fillOpacity: 1,
+      fillOpacity: 0.7,
+      showLegendTooltips: true,
+      tooltipOptions: {
+        iconSize: new L.Point(0, 0),
+        iconAnchor: new L.Point(-5000, 5000)
+      },
+
+      gradient: false
     };
     return new L.StackedRegularPolygonMarker(latlng, options);
 

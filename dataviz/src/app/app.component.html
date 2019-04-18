@@ -8,7 +8,7 @@
   <mat-card-title>Controls</mat-card-title>
   <mat-card-content>
     <h4>Time</h4>
-    <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHeatmap()" [(ngModel)]="time">
+    <mat-slider thumbLabel [tickInterval]="tickSize" [step]="stepSize" min="0" max="23" (change)="filterHeatmap()" [(ngModel)]="time">
     </mat-slider>
     <mat-slider thumbLabel [tickInterval]="tickSize" min="0" max="23" (change)="filterHexmap()" [(ngModel)]="timeHex">
     </mat-slider>
@@ -18,12 +18,16 @@
     <button mat-button color="primary" (click)="showAllJourneys()">Show All Journeys</button>
     <button mat-button color="primary" (click)="removeAllJourneys()">Remove All Journeys</button>
     <button mat-button color="primary" (click)="showHeatmap()">Show Heatmap</button>
+    <button mat-button color="primary" (click)="showHexmap()">Show Hexmap</button>
     <button mat-button color="primary" (click)="hideHeatmap()">Hide Heatmap</button>
     <button mat-button color="primary" (click)="hideHexmap()">Hide Hexmap</button>
     <button mat-button color="primary" (click)="resetHeatmap()">Reset Heatmap</button>
     <button mat-button color="primary" (click)="startDrawing()">Start Drawing</button>
     <button mat-button color="primary" (click)="editDrawing()">Edit Drawing</button>
     <button mat-button color="primary" (click)="stopDrawing()">Stop Drawing</button>
+    <button mat-button color="primary" (click)="showAllHexPolygons()">Show Hex Graphs</button>
+    <button mat-button color="primary" (click)="hideAllHexPolygons()">Hide Hex Graphs</button>
+    <button mat-button color="primary" (click)="hoverEnabled = !hoverEnabled">Toggle Hover</button>
   </mat-card-content>
   <mat-card-actions>
     <button mat-button>Close</button>
