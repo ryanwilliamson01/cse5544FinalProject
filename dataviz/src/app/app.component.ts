@@ -37,6 +37,7 @@ export class AppComponent implements OnInit {
 
   features = [];
   polylines = [];
+  allPoints = [];
   tickSize = 1;
   stepSize = .25;
   hexGrid;
@@ -128,12 +129,15 @@ export class AppComponent implements OnInit {
 
     this.loading = true;
     this.transity.getAllPoints().subscribe(res => {
-      console.log('recieved');
-
+      // console.log(res);
+      // res.forEach(j => j.path.forEach(p => {
+      //   const marker = new L.circleMarker(new L.LatLng(p.lat, p.lon), { radius: 2 });
+      //   this.map.addLayer(marker);
+      //   this.allPoints.push(marker);
+      // }));
       this.features = res;
-      this.heatmap = this.journeysToHeatmap(res, {});
+      this.heatmap = this.journeysToHeatmap(res,{});
       this.hexmap = this.journeysToHexmap(res, {});
-      this.hexmap.addTo(this.map);
       this.loading = false;
       console.log(this.hexmap);
     });
@@ -142,10 +146,13 @@ export class AppComponent implements OnInit {
   hideHexmap() {
     this.map.removeLayer(this.hexmap);
   }
+  removeAllPoints() {
+    this.allPoints.forEach(p => this.map.removeLayer(p));
+  }
 
   generateHexGrid(journeys: any[]) {
     const bbox = turf.bbox(turf.bboxPolygon([-83.2, 39.822358, -82.809992, 40.153282]));
-    const cellsize = 2.3;
+    const cellsize = 1.5;
     const hexgrid = turf.hexGrid(bbox, cellsize);
 
     // console.log(hexgrid);
@@ -168,7 +175,8 @@ export class AppComponent implements OnInit {
         }
       });
     });
-    const colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    // const colormap = d3.interpolateRgb(HEATMAP_START_COLOR, HEATMAP_END_COLOR);
+    const colormap = d3.interpolateRdYlBu;
     const maxAdj = 0.3 * this.max;
 
 
@@ -177,7 +185,7 @@ export class AppComponent implements OnInit {
     return L.geoJson(hexgrid, {
       style: function (feature) {
         return {
-          'color': colormap(feature.properties.numPoints / (200)),
+          'color': colormap(1 - feature.properties.numPoints / (200)),
           'weight': 1,
           'fillOpacity': 0.5,
           'opacity': 0.5
@@ -239,7 +247,7 @@ export class AppComponent implements OnInit {
       return this.time <= j.start / 60 && j.start / 60 <= this.time + this.tickSize;
     });
     this.map.removeLayer(this.heatmap);
-    this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15 }).addTo(this.map);
+    this.heatmap = this.journeysToHeatmap(filteredJourneys, { radius: 20, maxZoom: 15, }).addTo(this.map);
   }
   filterHexmap() {
     this.map.removeLayer(this.hexmap);
