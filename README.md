@@ -11,7 +11,7 @@
 8. Open localhost:4200 in Chrome (Or Safari) and enjoy the app
 
 ## Report 
-[Report](https://docs.google.com/document/d/1oFAP8QgUjdHaTO7OTD-d7dRtQhzZl7yKZIB5fbxNp9c/edit?usp=sharing)
+[Report](https://github.com/ryanwilliamson01/cse5544FinalProject/blob/master/CSE5544%20Final%20Report.docx)
 
 ## Demo
 
